@@ -52,6 +52,29 @@ export const dataProvider = {
         };
       });
   },
+  update: (resource, params) => {
+    const { id, data } = params;
+
+    // Make a PUT request to update the record with the specified ID
+    return fetch(`http://localhost:3000/${resource}/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data), // Send the updated data
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(response.statusText);
+        }
+        return response.json();
+      })
+      .then((updatedData) => {
+        return {
+          data: updatedData, // The updated record data
+        };
+      });
+  },
   // Other data provider methods...
 };
 
