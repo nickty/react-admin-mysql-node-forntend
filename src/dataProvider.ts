@@ -1,8 +1,50 @@
 // import jsonServerProvider from "ra-data-json-server";
 
+import { httpClient } from "./utils/http/http";
+
 // export const dataProvider = jsonServerProvider(
 //   import.meta.env.VITE_JSON_SERVER_URL
 // );
+
+export const toQueryString = (obj, prefix: string = ""): string => {
+    var str = [],
+        k,
+        v;
+    for (var p in obj) {
+        if (!obj.hasOwnProperty(p)) {
+            continue;
+        }
+        // Skip things from the prototype.
+        if (~p.indexOf("[")) {
+            k = prefix
+                ? prefix +
+                  "[" +
+                  p.substring(0, p.indexOf("[")) +
+                  "]" +
+                  p.substring(p.indexOf("["))
+                : p;
+            // Only put whatever is before the bracket into new brackets; append the rest.
+        } else {
+            k = prefix ? prefix + "[" + p + "]" : p;
+        }
+        v = obj[p];
+        if (
+            null === v ||
+            false === v ||
+            undefined === v ||
+            (typeof v === "object" && !Object.keys(v).length)
+        ) {
+            v = "";
+        }
+        str.push(
+            typeof v === "object"
+                ? toQueryString(v, k)
+                : encodeURIComponent(k) + "=" + encodeURIComponent(v)
+        );
+    }
+
+    return str.join("&");
+};
 
 
 
@@ -52,29 +94,25 @@ export const dataProvider = {
         };
       });
   },
-  update: (resource, params) => {
-    const { id, data } = params;
+update: (resource: string, params: { id: number; data }) => {
+        const url = `/${resource}/${params.id}`;
 
-    // Make a PUT request to update the record with the specified ID
-    return fetch(`http://localhost:3000/${resource}/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data), // Send the updated data
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(response.statusText);
-        }
-        return response.json();
-      })
-      .then((updatedData) => {
-        return {
-          data: updatedData, // The updated record data
-        };
-      });
-  },
+        return httpClient(url, {
+            method: "POST",
+            body: toQueryString(params.data),
+        }).then(({ json }: any) => {
+            if (json?.status !== Status.SUCCESS) {
+                throw new Error(
+                    !!json?.message
+                        ? json.message
+                        : "Something went wrong! Please try again!"
+                );
+            }
+            return {
+                data: json.data,
+            };
+        });
+    },
   // Other data provider methods...
 };
 
